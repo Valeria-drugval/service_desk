@@ -1,0 +1,9 @@
+asgiref==3.11.1
+django==4.2.30
+sqlparse==0.5.5
+typing-extensions==4.16.0
+tzdata==2026.5
+psutil==5.9.8
+celery==5.3.6
+redis==5.0.1
+django-celery-results==2.5.1

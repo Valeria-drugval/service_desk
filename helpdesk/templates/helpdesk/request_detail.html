@@ -1,0 +1,104 @@
+{% extends 'helpdesk/base.html' %}
+
+{% block page_title %}Заявка #{{ req.id }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-body-tertiary d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-bold">#{{ req.id }}: {{ req.title }}</h5>
+                <span class="badge bg-primary fs-6">{{ req.get_status_display }}</span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row mb-3">
+                    <div class="col-sm-6"><p class="text-muted mb-1">Клиент</p><p class="fw-bold"><i class="fas fa-user me-2"></i>{{ req.client.username }}</p></div>
+                    <div class="col-sm-6"><p class="text-muted mb-1">Категория</p><p class="fw-bold"><i class="fas fa-tag me-2"></i>{{ req.category.name|default:"Не указана" }}</p></div>
+                </div>
+                <hr>
+                <p class="text-muted mb-1">Описание:</p>
+                <p class="fs-6">{{ req.description|linebreaks }}</p>
+            </div>
+        </div>
+
+        <!-- КОММЕНТАРИИ -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-body-tertiary py-3"><h6 class="mb-0 fw-bold"><i class="fas fa-comments me-2"></i> Комментарии</h6></div>
+            <div class="card-body">
+                {% for comment in req.comments.all %}
+                    <div class="d-flex mb-3">
+                        <div class="bg-secondary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px; flex-shrink: 0;">
+                            {{ comment.author.username|first|upper }}
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center">
+                                <strong class="me-2">{{ comment.author.username }}</strong>
+                                <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                            <p class="mb-0 mt-1">{{ comment.text }}</p>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="text-muted text-center py-3">Комментариев пока нет</p>
+                {% endfor %}
+                
+                <hr>
+                <form action="{% url 'add_comment' req.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" name="text" class="form-control" placeholder="Написать комментарий..." required>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- СМЕНА СТАТУСА -->
+        {% if next_statuses %}
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white py-3"><h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i> Изменить статус</h6></div>
+            <div class="card-body">
+                <form action="" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3"><input type="text" name="comment" class="form-control" placeholder="Комментарий к изменению (опционально)"></div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% for status_code, status_name in next_statuses %}
+                            <button type="submit" formaction="{% url 'change_status' req.id status_code %}" class="btn btn-warning fw-bold"><i class="fas fa-arrow-right me-1"></i> {{ status_name }}</button>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ИСТОРИЯ -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark text-white py-3"><h6 class="mb-0"><i class="fas fa-history me-2"></i> История</h6></div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-body-tertiary py-3">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 text-primary">Заявка создана</h6>
+                            <small class="text-muted">{{ req.created_at|date:"d.m H:i" }}</small>
+                        </div>
+                        <small>Клиент: {{ req.client.username }}</small>
+                    </li>
+                    {% for log in req.status_history.all %}
+                    <li class="list-group-item py-3">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">Смена статуса</h6>
+                            <small class="text-muted">{{ log.changed_at|date:"d.m H:i" }}</small>
+                        </div>
+                        <p class="mb-1"><span class="badge bg-secondary">{{ log.old_status }}</span> <i class="fas fa-long-arrow-alt-right mx-1"></i> <span class="badge bg-success">{{ log.new_status }}</span></p>
+                        <small class="text-muted">Изменил: {{ log.changed_by.username }}</small>
+                        {% if log.comment %}<div class="mt-2 p-2 bg-body-tertiary rounded border small fst-italic">"{{ log.comment }}"</div>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
